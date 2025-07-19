@@ -80,7 +80,15 @@ async def report(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await post_top_streak_awards(context)
 
 # 📊 Summary report
-async def post_summary(context):
+async def post_summary(context_or_bot):
+    """Send the daily summary report to the group.
+
+    This helper works both when called from a handler (passing the ``context``)
+    and when triggered by the scheduler where only the ``Bot`` instance is
+    available.
+    """
+    bot = getattr(context_or_bot, "bot", context_or_bot)
+
     date = today()
     today_data = submissions.get(date, {})
     today_ids = set(today_data.keys())
@@ -110,10 +118,18 @@ async def post_summary(context):
 🏆 लगातार रिपोर्टिंग करने वाले:
 {leaderboard if leaderboard else 'अभी कोई डेटा उपलब्ध नहीं है।'}
 """
-    await context.bot.send_message(chat_id=GROUP_ID, text=summary)
+    await bot.send_message(chat_id=GROUP_ID, text=summary)
 
 # 🎖️ Individual badge awards
-async def post_top_streak_awards(context):
+async def post_top_streak_awards(context_or_bot):
+    """Send individual streak awards.
+
+    Like :func:`post_summary`, this function accepts either a ``context`` or a
+    ``Bot`` instance so it can be used by both command handlers and scheduled
+    jobs.
+    """
+    bot = getattr(context_or_bot, "bot", context_or_bot)
+
     date = today()
     member_ids = set(known_users.keys())
     top_streaks = sorted(
@@ -126,7 +142,7 @@ async def post_top_streak_awards(context):
     for i, (uid, count) in enumerate(top_streaks):
         name = known_users.get(uid, f"User {uid}")
         msg = f"{medals[i]} *{name}*, आप आज #{i+1} स्थान पर हैं — {count} दिनों की शानदार रिपोर्टिंग के साथ! 🎉👏"
-        await context.bot.send_message(chat_id=GROUP_ID, text=msg, parse_mode="Markdown")
+        await bot.send_message(chat_id=GROUP_ID, text=msg, parse_mode="Markdown")
         await asyncio.sleep(1)
 
 # 🕒 Auto scheduling
